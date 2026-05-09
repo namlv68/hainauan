@@ -47,6 +47,7 @@ const App = () => {
 Dịch kịch bản nấu ăn hài sau đây từ Tiếng Việt sang Tiếng Anh và Tiếng Trung.
 Giữ nguyên các mốc thời gian (0-3s, 3-6s, ...) và các nhãn tiêu đề.
 Nội dung phải hài hước, sinh động và giữ đúng tinh thần của bản gốc.
+BẮT BUỘC giữ nguyên các tên riêng nhân vật: ${charNamesList.join(", ")}. Không được dịch hoặc thay đổi các tên này.
 Không trả về bất kỳ lời giải thích nào, chỉ trả về JSON thô.
 
 Nội dung Tiếng Việt:
@@ -59,7 +60,7 @@ Cấu trúc JSON yêu cầu:
 }
 `;
         const res = await genAI.models.generateContent({
-           model: 'gemini-2.5-flash',
+           model: 'gemini-1.5-flash',
            contents: promptText
         });
         return res.text;
@@ -281,7 +282,7 @@ Số lượng đoạn (parts): ${numPrompts} (mỗi đoạn 12s)
 Yêu cầu:
 1. Bối cảnh (Setting): ${settingMode === 'Cameo' ? 'Giữ nguyên bối cảnh cameo gốc, trả về kết quả RẤT NGẮN GỌN (1 câu)' : 'Sáng tạo một bối cảnh bếp núc hoảng loạn mới lạ, RẤT NGẮN GỌN (1-2 câu ngắn)'}
 2. Trang phục (Outfit): ${outfitMode === 'Cameo' ? 'Giữ nguyên trang phục cameo gốc, trả về RẤT NGẮN GỌN (vài từ)' : 'Sáng tạo một trang phục đầu bếp kỳ quặc mới, RẤT NGẮN GỌN (1 câu)'}
-3. Hành động (Action): Mô tả chung NGẮN GỌN (1 câu) về diễn biến của toàn bộ thảm họa nấu ăn hài hước.
+3. Hành động (Action): Mô tả chung NGẮN GỌN (1 câu) về diễn biến của toàn bộ thảm họa nấu ăn hài hước, sử dụng tên các nhân vật (${charNamesList.slice(0, numCharacters).join(", ")}).
 4. Timelines: CHI TIẾT TỪNG HÀNH ĐỘNG. Mảng chứa đúng ${numPrompts} phần tử, mỗi phần tử là diễn biến chi tiết cho đoạn 12s đó, chia theo các mốc 0-3s, 3-6s, 6-9s, 9-12s. Không lặp lại nội dung giữa các đoạn, phải liên kết thành chuỗi hành động trọn vẹn hài hước, đoạn sau nối tiếp đoạn trước. Tiền tố dòng đầu luôn là "Timeline Chi Tiết:". BẮT BUỘC SỬ DỤNG TÊN CỦA CÁC NHÂN VẬT NÀY (${charNamesList.slice(0, numCharacters).join(", ")}) TRONG NỘI DUNG TIMELINES ĐỂ MÔ TẢ HÀNH ĐỘNG CHÍNH MÀ HỌ GÂY RA.
 
 Trả về kết quả dưới dạng JSON hợp lệ (RAW JSON, không bọc trong markdown \`\`\`json):
@@ -299,7 +300,7 @@ Trả về kết quả dưới dạng JSON hợp lệ (RAW JSON, không bọc tr
 }
 `;
         const response = await genAI.models.generateContent({
-           model: 'gemini-2.5-flash',
+           model: 'gemini-1.5-flash',
            contents: promptText,
            config: {
              temperature: 0.9

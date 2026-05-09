@@ -35,9 +35,9 @@ const App = () => {
     localStorage.setItem('actionAppState', JSON.stringify(stateObj));
   }, [numCharacters, outfitMode, settingMode, theme, customAction, duration, isCommerceMode, productName, cameraStyle, combatStyle, generatedPrompts]);
 
-  const handleSyncTranslation = async (index: number) => {
+  const handleSyncTranslation = async (index: number, contentOverride?: string) => {
     if (!generatedPrompts || !apiKeys.length || translatingIdx !== null) return;
-    const currentVi = generatedPrompts[index].vi;
+    const currentVi = contentOverride || generatedPrompts[index].vi;
     if (!currentVi.trim()) return;
 
     setTranslatingIdx(index);
@@ -705,7 +705,7 @@ Trả về kết quả dưới dạng JSON hợp lệ (RAW JSON, không bọc tr
                             className="w-full bg-transparent text-[11.5px] md:text-xs leading-[1.6] text-neutral-300/90 whitespace-pre-wrap font-sans border-none focus:ring-0 outline-none resize-none overflow-hidden"
                             value={item.content}
                             onChange={(e: any) => updatePromptText(pIdx, item.lang as 'vi' | 'en' | 'zh', e.target.value)}
-                            onBlur={() => item.lang === 'vi' && handleSyncTranslation(pIdx)}
+                            onBlur={(e: any) => item.lang === 'vi' && handleSyncTranslation(pIdx, e.target.value)}
                             placeholder={item.lang === 'vi' ? "Nhập kịch bản Tiếng Việt..." : `Bản dịch ${item.label} sẽ hiển thị tại đây...`}
                           />
                         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Users, Sword, Zap, Copy, Check, Clock, Flame, ChevronUp, ChevronDown, MonitorPlay, Star, Search, Shirt, ShoppingBag, Key, Link, Settings } from 'lucide-react';
+import { Camera, Users, Sword, Zap, Copy, Check, Clock, Flame, ChevronUp, ChevronDown, MonitorPlay, Star, Search, Shirt, ShoppingBag, Key, Link, Settings, Download } from 'lucide-react';
 import { executeAiWithFallback } from './aiService';
 
 const loadSavedState = () => {
@@ -351,6 +351,30 @@ Trả về kết quả dưới dạng JSON hợp lệ (RAW JSON, không bọc tr
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  const downloadAllPrompts = () => {
+    if (!generatedPrompts) return;
+    
+    let content = "=== KỊCH BẢN NẤU ĂN HÀI ===\n\n";
+    generatedPrompts.forEach((prompt) => {
+      content += `PART ${prompt.index}\n`;
+      content += `-------------------\n`;
+      content += `[TIẾNG VIỆT]\n${prompt.vi}\n\n`;
+      content += `[ENGLISH]\n${prompt.en}\n\n`;
+      content += `[CHINESE]\n${prompt.zh}\n\n`;
+      content += `===================\n\n`;
+    });
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `kich-ban-nau-an-${new Date().getTime()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-neutral-950 text-white p-4 font-sans flex flex-col items-center">
       {/* API Key Modal */}
@@ -541,6 +565,15 @@ Trả về kết quả dưới dạng JSON hợp lệ (RAW JSON, không bọc tr
 
         {generatedPrompts && (
           <div className="space-y-10 mt-8 pb-20">
+            <div className="flex justify-center">
+               <button 
+                 onClick={downloadAllPrompts}
+                 className="flex items-center gap-2 px-6 py-3 bg-neutral-800 border border-neutral-700 rounded-xl font-bold text-sm text-neutral-300 hover:text-white hover:bg-neutral-700 transition-all active:scale-95 shadow-lg"
+               >
+                 <Download size={18} /> TẢI XUỐNG TẤT CẢ KỊCH BẢN (.TXT)
+               </button>
+            </div>
+
             {generatedPrompts.map((prompt, pIdx) => (
               <div key={prompt.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center justify-between mb-4">

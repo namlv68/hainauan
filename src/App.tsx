@@ -28,15 +28,100 @@ const App = () => {
   const [productName, setProductName] = useState<string>(savedState.productName ?? '');
   const [cameraStyle, setCameraStyle] = useState<string>(savedState.cameraStyle ?? 'Handheld');
   const [combatStyle, setCombatStyle] = useState<string>(savedState.combatStyle ?? 'HandToHand');
+  const [translatingIdx, setTranslatingIdx] = useState<number | null>(null);
 
   useEffect(() => {
     const stateObj = { numCharacters, outfitMode, settingMode, theme, customAction, duration, isCommerceMode, productName, cameraStyle, combatStyle, generatedPrompts };
     localStorage.setItem('actionAppState', JSON.stringify(stateObj));
   }, [numCharacters, outfitMode, settingMode, theme, customAction, duration, isCommerceMode, productName, cameraStyle, combatStyle, generatedPrompts]);
 
+  const handleSyncTranslation = async (index: number) => {
+    if (!generatedPrompts || !apiKeys.length || translatingIdx !== null) return;
+    const currentVi = generatedPrompts[index].vi;
+    if (!currentVi.trim()) return;
+
+    setTranslatingIdx(index);
+    try {
+      const responseText = await executeAiWithFallback(apiKeys, activeApiKeyIndex, setActiveApiKeyIndex, async (genAI) => {
+        const promptText = `
+Dịch kịch bản nấu ăn hài sau đây từ Tiếng Việt sang Tiếng Anh và Tiếng Trung.
+Giữ nguyên các mốc thời gian (0-3s, 3-6s, ...) và các nhãn tiêu đề.
+Nội dung phải hài hước, sinh động và giữ đúng tinh thần của bản gốc.
+Không trả về bất kỳ lời giải thích nào, chỉ trả về JSON thô.
+
+Nội dung Tiếng Việt:
+${currentVi}
+
+Cấu trúc JSON yêu cầu:
+{
+  "en": "...",
+  "zh": "..."
+}
+`;
+        const res = await genAI.models.generateContent({
+           model: 'gemini-2.5-flash',
+           contents: promptText
+        });
+        return res.text;
+      });
+
+      if (responseText) {
+        let cleaned = responseText;
+        const match = responseText.match(/\{[\s\S]*\}/);
+        if (match) cleaned = match[0];
+        const result = JSON.parse(cleaned);
+        
+        if (result.en && result.zh) {
+          const updated = [...generatedPrompts];
+          updated[index] = { ...updated[index], en: result.en, zh: result.zh };
+          setGeneratedPrompts(updated);
+        }
+      }
+    } catch (e) {
+      console.error("Translation error:", e);
+    } finally {
+      setTranslatingIdx(null);
+    }
+  };
+
+  const updatePromptText = (index: number, lang: 'vi' | 'en' | 'zh', newVal: string) => {
+    if (!generatedPrompts) return;
+    const updated = [...generatedPrompts];
+    updated[index] = { ...updated[index], [lang]: newVal };
+    setGeneratedPrompts(updated);
+  };
+
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
     setGeneratedPrompts(null);
+  };
+
+  const AutoResizeTextarea = ({ value, onChange, onBlur, placeholder, className }: any) => {
+    const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+    const adjustHeight = () => {
+      const textarea = textareaRef.current;
+      if (textarea) {
+        textarea.style.height = "auto";
+        textarea.style.height = `${textarea.scrollHeight}px`;
+      }
+    };
+
+    useEffect(() => {
+      adjustHeight();
+    }, [value]);
+
+    return (
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        className={className}
+        rows={1}
+      />
+    );
   };
 
   // API Key State
@@ -593,9 +678,18 @@ Trả về kết quả dưới dạng JSON hợp lệ (RAW JSON, không bọc tr
                   ].map((item) => {
                     const uniqueKey = `${prompt.id}-${item.lang}`;
                     return (
-                      <div key={item.lang} className={`bg-neutral-900/60 rounded-2xl border ${item.color} overflow-hidden`}>
+                      <div key={item.lang} className={`bg-neutral-900/60 rounded-2xl border ${item.color} overflow-hidden transition-all duration-300 ${translatingIdx === pIdx && item.lang !== 'vi' ? 'opacity-50' : 'opacity-100'}`}>
                         <div className="bg-neutral-800/40 px-4 py-2 flex justify-between items-center border-b border-neutral-800/50">
-                          <span className="text-[9px] font-black tracking-tighter text-neutral-400">{item.label}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-black tracking-tighter text-neutral-400">{item.label}</span>
+                            {translatingIdx === pIdx && item.lang !== 'vi' && (
+                              <div className="flex gap-1">
+                                <div className="w-1 h-1 bg-red-500 rounded-full animate-bounce"></div>
+                                <div className="w-1 h-1 bg-red-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                <div className="w-1 h-1 bg-red-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                              </div>
+                            )}
+                          </div>
                           <button 
                             onClick={() => copyToClipboard(item.content, uniqueKey)}
                             className={`flex items-center gap-1 text-[9px] font-bold px-3 py-1.5 rounded-lg transition-all ${
@@ -606,9 +700,13 @@ Trả về kết quả dưới dạng JSON hợp lệ (RAW JSON, không bọc tr
                           </button>
                         </div>
                         <div className="p-4">
-                          <pre className="text-[11.5px] md:text-xs leading-[1.6] text-neutral-300/90 whitespace-pre-wrap font-sans">
-                            {item.content}
-                          </pre>
+                          <AutoResizeTextarea 
+                            className="w-full bg-transparent text-[11.5px] md:text-xs leading-[1.6] text-neutral-300/90 whitespace-pre-wrap font-sans border-none focus:ring-0 outline-none resize-none overflow-hidden"
+                            value={item.content}
+                            onChange={(e: any) => updatePromptText(pIdx, item.lang as 'vi' | 'en' | 'zh', e.target.value)}
+                            onBlur={() => item.lang === 'vi' && handleSyncTranslation(pIdx)}
+                            placeholder={item.lang === 'vi' ? "Nhập kịch bản Tiếng Việt..." : `Bản dịch ${item.label} sẽ hiển thị tại đây...`}
+                          />
                         </div>
                       </div>
                     );

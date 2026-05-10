@@ -60,7 +60,7 @@ Cấu trúc JSON yêu cầu:
 }
 `;
         const res = await genAI.models.generateContent({
-           model: 'gemini-1.5-flash',
+           model: 'gemini-3-flash-preview',
            contents: promptText
         });
         return res.text;
@@ -272,18 +272,18 @@ Cấu trúc JSON yêu cầu:
 
     try {
       const responseStr = await executeAiWithFallback(apiKeys, activeApiKeyIndex, setActiveApiKeyIndex, async (genAI) => {
-        const promptText = `
+          const promptText = `
 Tạo một kịch bản phim hài nấu ăn hoàn toàn độc đáo, ngẫu nhiên và không lặp lại.
 Chủ đề: ${themeObj.name} (${theme === 'Custom' && customAction ? customAction : themeObj.desc})
 Phong cách nấu ăn (tấu hài): ${combatStyles.find(c => c.id === combatStyle)?.name}
 Góc máy: ${cameraStyles.find(c => c.id === cameraStyle)?.name}
 Số lượng đoạn (parts): ${numPrompts} (mỗi đoạn 12s)
 
-Yêu cầu:
-1. Bối cảnh (Setting): ${settingMode === 'Cameo' ? 'Giữ nguyên bối cảnh cameo gốc, trả về kết quả RẤT NGẮN GỌN (1 câu)' : 'Sáng tạo một bối cảnh bếp núc hoảng loạn mới lạ, RẤT NGẮN GỌN (1-2 câu ngắn)'}
-2. Trang phục (Outfit): ${outfitMode === 'Cameo' ? 'Giữ nguyên trang phục cameo gốc, trả về RẤT NGẮN GỌN (vài từ)' : 'Sáng tạo một trang phục đầu bếp kỳ quặc mới, RẤT NGẮN GỌN (1 câu)'}
-3. Hành động (Action): Mô tả chung NGẮN GỌN (1 câu) về diễn biến của toàn bộ thảm họa nấu ăn hài hước, sử dụng tên các nhân vật (${charNamesList.slice(0, numCharacters).join(", ")}).
-4. Timelines: CHI TIẾT TỪNG HÀNH ĐỘNG. Mảng chứa đúng ${numPrompts} phần tử, mỗi phần tử là diễn biến chi tiết cho đoạn 12s đó, chia theo các mốc 0-3s, 3-6s, 6-9s, 9-12s. Không lặp lại nội dung giữa các đoạn, phải liên kết thành chuỗi hành động trọn vẹn hài hước, đoạn sau nối tiếp đoạn trước. Tiền tố dòng đầu luôn là "Timeline Chi Tiết:". BẮT BUỘC SỬ DỤNG TÊN CỦA CÁC NHÂN VẬT NÀY (${charNamesList.slice(0, numCharacters).join(", ")}) TRONG NỘI DUNG TIMELINES ĐỂ MÔ TẢ HÀNH ĐỘNG CHÍNH MÀ HỌ GÂY RA.
+Yêu cầu (Mô tả hành động SIÊU CHI TIẾT, hình ảnh hóa sống động từng khoảnh khắc):
+1. Bối cảnh (Setting): ${settingMode === 'Cameo' ? 'Giữ nguyên bối cảnh gốc, Giữ nguyên môi trường gốc, Giữ nguyên background gốc, Không thay đổi không gian, Sử dụng bối cảnh gốc từ cameo' : 'Sáng tạo một bối cảnh bếp núc hoảng loạn mới lạ, RẤT NGẮN GỌN (1 câu ngắn)'}
+2. Trang phục (Outfit): ${outfitMode === 'Cameo' ? 'Giữ nguyên trang phục cameo gốc, trả về cực kỳ ngắn gọn' : 'Sáng tạo một trang phục đầu bếp kỳ quặc mới, RẤT NGẮN GỌN (1 câu)'}
+3. Hành động (Action): Mô tả chung CỰC NGẮN (vài từ) về thảm họa nấu ăn, sử dụng tên các nhân vật (${charNamesList.slice(0, numCharacters).join(", ")}).
+4. Timelines: Mô tả SIÊU CHI TIẾT và cụ thể từng hành động, biểu cảm, va chạm vật lý sống động. Mảng chứa đúng ${numPrompts} phần tử, mỗi phần tử là diễn biến chi tiết cho đoạn 12s đó, chia rõ các mốc 0-3s, 3-6s, 6-9s, 9-12s. Phải liên kết thành chuỗi hành động kịch tính, hài hước xuyên suốt. Tiền tố dòng đầu luôn là "Timeline Chi Tiết:". BẮT BUỘC SỬ DỤNG TÊN CỦA CÁC NHÂN VẬT NÀY (${charNamesList.slice(0, numCharacters).join(", ")}) TRONG TẤT CẢ CÁC MỐC THỜI GIAN ĐỂ MÔ TẢ CHI TIẾT HÀNH ĐỘNG CỦA HỌ.
 
 Trả về kết quả dưới dạng JSON hợp lệ (RAW JSON, không bọc trong markdown \`\`\`json):
 {
@@ -300,7 +300,7 @@ Trả về kết quả dưới dạng JSON hợp lệ (RAW JSON, không bọc tr
 }
 `;
         const response = await genAI.models.generateContent({
-           model: 'gemini-1.5-flash',
+           model: 'gemini-3-flash-preview',
            contents: promptText,
            config: {
              temperature: 0.9
@@ -338,18 +338,18 @@ Trả về kết quả dưới dạng JSON hợp lệ (RAW JSON, không bọc tr
           let settingVal = aiResult.setting[langKey];
           if (settingMode === 'Cameo') {
             settingVal = {
-              vi: "Bối cảnh Cameo gốc",
-              en: "Original Cameo setting",
-              zh: "原始 Cameo 背景"
+              vi: "Giữ nguyên bối cảnh gốc, Giữ nguyên môi trường gốc, Giữ nguyên background gốc, Không thay đổi không gian, Sử dụng bối cảnh gốc từ cameo",
+              en: "Keep original background, Keep original environment, Keep original background, Do not change space, Use original background from cameo",
+              zh: "保留原始背景，保留原始环境，保留原始背景，不改变空间，使用来自客串的原始背景"
             }[langKey] || "Cameo setting";
           }
 
           const timelineContent = aiResult.timelines[i]?.[langKey] || "";
 
           const labels = {
-            vi: ["Bối cảnh", "Thể loại", "Phong cách", "Nhân sự", "Trang phục", "Góc quay", "Ánh sáng", "Hành động / Nấu ăn", "Lưu ý", "Quảng cáo Sản phẩm"],
-            en: ["Setting", "Genre", "Style", "Kitchen Staff", "Outfit", "Camera Angle", "Lighting", "Action / Cooking Style", "Note", "Product Placement"],
-            zh: ["背景", "类型", "风格", "厨房员工", "服装", "相机角度", "灯光", "动作 / 烹饪风格", "注意", "产品放置"]
+            vi: ["Bối cảnh", "Thể loại", "Phong cách", "Trang phục", "Góc quay", "Ánh sáng", "Hành động / Nấu ăn", "Lưu ý", "Quảng cáo Sản phẩm"],
+            en: ["Setting", "Genre", "Style", "Outfit", "Camera Angle", "Lighting", "Action / Cooking Style", "Note", "Product Placement"],
+            zh: ["背景", "类型", "风格", "服装", "相机角度", "灯光", "动作 / 烹饪风格", "注意", "产品放置"]
           }[langKey];
 
           const styleVal = {
@@ -397,18 +397,18 @@ Trả về kết quả dưới dạng JSON hợp lệ (RAW JSON, không bọc tr
             zh: "请勿在图片中添加任何文字、排版或随机徽标。"
           }[langKey];
 
-          let finalPrompt = `${labels[0]}: ${settingVal}\n${labels[1]}: ${actionText}\n${labels[2]}: ${styleVal}\n${labels[3]}: ${charStr}\n${labels[4]}: ${outfitStr}\n${labels[5]}: ${cameraVal}\n${labels[6]}: ${lightVal}\n${labels[7]}: ${combatVal}`;
+          let finalPrompt = `${labels[0]}: ${settingVal}\n${labels[1]}: ${actionText}\n${labels[2]}: ${styleVal}\n${labels[3]}: ${outfitStr}\n${labels[4]}: ${cameraVal}\n${labels[5]}: ${lightVal}\n${labels[6]}: ${combatVal}`;
 
           if (isCommerceMode && productName) {
             const productDesc = {
-              vi: `Sản phẩm "${productName}" được tích hợp tự nhiên vào bối cảnh nấu ăn hối hả (có thể bị văng, cầm trên tay, ngã đè lên), giữ ĐÚNG kiểu mẫu và màu sắc gốc tuyệt đối.`,
+              vi: `Sản phẩm "${productName}" giữ nguyên ngoại hình sản phẩm, giữ nguyên màu sắc, giữ nguyên kích thước, giữ nguyên logo, giữ nguyên nội dung chữ, không sửa thiết kế sản phẩm được tích hợp tự nhiên vào bối cảnh nấu ăn hối hả (có thể bị văng, cầm trên tay, ngã đè lên,để bàn, để trên kệ hoặc để ở đâu đó)`,
               en: `Product "${productName}" naturally integrated into the frantic cooking scene (held, thrown, or dropped), keeping the EXACT original styling and colors perfectly.`,
               zh: `产品 "${productName}" 自然地融入疯狂的烹饪场景，保持完全一致的原始原始颜色。`
             }[langKey];
-            finalPrompt += `\n${labels[9]}: ${productDesc}`;
+            finalPrompt += `\n${labels[8]}: ${productDesc}`;
           }
 
-          finalPrompt += `\n\n${timelineContent}\n\n${labels[8]}: ${noTextNote}`;
+          finalPrompt += `\n\n${timelineContent}\n\n${labels[7]}: ${noTextNote}`;
 
           return finalPrompt;
         };

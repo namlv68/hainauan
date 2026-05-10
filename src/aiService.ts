@@ -1,3 +1,4 @@
+
 export const executeAiWithFallback = async (
   apiKeys: string[],
   activeKeyIndex: number,
@@ -10,44 +11,32 @@ export const executeAiWithFallback = async (
 
   let lastError: any = null;
 
-  const createWebAPI = (apiKey: string) => {
-    return {
+  const tryWithKey = async (index: number) => {
+    // We create a "fake" SDK object that compatibility-wise calls our server API
+    const wrappedAI = {
       models: {
-        generateContent: async ({ model, contents }: { model: string, contents: string }) => {
-          const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
-          const response = await fetch(url, {
+        generateContent: async ({ model, contents, config }: { model: string, contents: string, config?: any }) => {
+          const response = await fetch('/api/ai', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              contents: [{
-                parts: [{
-                  text: contents
-                }]
-              }]
+              apiKey: apiKeys[index],
+              model,
+              contents,
+              config
             })
           });
 
           if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(`HTTP Error: ${response.status} - ${JSON.stringify(errorData)}`);
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(`AI API failed: ${errData.error || response.statusText}`);
           }
 
-          const data = await response.json();
-          if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
-             return { text: data.candidates[0].content.parts[0].text };
-          }
-          throw new Error("Invalid response format from API");
+          return await response.json();
         }
       }
     };
-  };
-
-  const tryWithKey = async (index: number) => {
-    const webAI = createWebAPI(apiKeys[index]);
-    const result = await taskFn(webAI);
-    return result;
+    return await taskFn(wrappedAI);
   };
 
   for (let i = activeKeyIndex; i < apiKeys.length; i++) {
